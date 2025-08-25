@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Biblioteca Digital EmpleaT",
+    "slug": "biblioteca-digital-empleat",
+    "scheme": "empleat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+     "owner": "dlca-alex",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.actualisat.empleat"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.actualisat.empleat",
+      "permissions": []
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "extra": {
+      "SUPABASE_URL": "https://vhhpppnmiarcakcwycxw.supabase.co",
+      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoaHBwcG5taWFyY2FrY3d5Y3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMzczMDIsImV4cCI6MjA3MTcxMzMwMn0.yTaW2ST1uNLdSiopPJ6ryNSj7WVWXJxXSmhEcbNGG9g",
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      },
+      "API_BASE_URL": "http://localhost:4000",
+      "GA4_MEASUREMENT_ID": "G-XXXXXXXXXX",
+      "GA4_API_SECRET": "YOUR_API_SECRET",
+      "GOOGLE_EXPO_CLIENT_ID": "YOUR_GOOGLE_EXPO_CLIENT_ID",
+      "FACEBOOK_APP_ID": "YOUR_FACEBOOK_APP_ID"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
+  }
+}
