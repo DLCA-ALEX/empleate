@@ -1,39 +1,33 @@
+// src/services/auth.ts
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
-WebBrowser.maybeCompleteAuthSession();
+try { WebBrowser.maybeCompleteAuthSession(); } catch {}
 
-/** Redirect que funciona en Expo Go. Si tu versión no conoce "useProxy",
- *  caemos al makeRedirectUri() “pelón”. */
-function getRedirectUri(): string {
-  try {
-    // @ts-ignore – algunas versiones no tipan useProxy pero sí existe
-    return AuthSession.makeRedirectUri({ useProxy: true });
-  } catch {
-    return AuthSession.makeRedirectUri();
-  }
-}
+const isExpoGo = Constants.appOwnership === 'expo';
 
-/** Lee params del callback (?query y #fragment) */
-function parseParams(url: string) {
+// Expo Go -> usa auth.expo.io (proxy)
+// Dev Client / build nativo -> usa scheme empleat://
+const EXPO_REDIRECT = 'https://auth.expo.io/@dlca-alex/biblioteca-digital-empleat';
+const returnUrl = isExpoGo
+  // @ts-ignore (algunas versiones no tipan useProxy)
+  ? AuthSession.makeRedirectUri({ useProxy: true })
+  : AuthSession.makeRedirectUri({ scheme: 'empleat' });
+
+function parse(url: string) {
   const out: Record<string, string> = {};
   try {
     const u = new URL(url);
-    u.searchParams.forEach((v, k) => (out[k] = v));
-    if (u.hash) {
-      const h = new URLSearchParams(u.hash.replace(/^#/, ''));
-      h.forEach((v, k) => (out[k] = v));
-    }
+    u.searchParams.forEach((v,k)=>out[k]=v);
+    if (u.hash) new URLSearchParams(u.hash.replace(/^#/, '')).forEach((v,k)=>out[k]=v);
   } catch {}
   return out;
 }
 
-/** Completa sesión en Supabase con lo recibido en el callback */
 async function finishFromCallback(url: string) {
-  const p = parseParams(url);
-
-  // Implicit flow (tokens en el fragment)
+  const p = parse(url);
   if (p.access_token) {
     const { error } = await supabase.auth.setSession({
       access_token: p.access_token,
@@ -42,72 +36,60 @@ async function finishFromCallback(url: string) {
     if (error) throw error;
     return;
   }
-
-  // Code flow (?code=...)
   if (p.code) {
     const { error } = await supabase.auth.exchangeCodeForSession(p.code);
     if (error) throw error;
     return;
   }
-
-  throw new Error('Callback sin credenciales (no access_token ni code).');
+  throw new Error('Callback sin credenciales.');
 }
 
-/** GOOGLE */
 export async function signInWithGoogle() {
-  const redirectTo = getRedirectUri();
+  // En Expo Go: Supabase debe redirigir a auth.expo.io
+  // En Dev Client: Supabase debe redirigir a empleat://...
+  const redirectTo = isExpoGo ? EXPO_REDIRECT : returnUrl;
 
-  // 1) Pide la URL a Supabase (sin redirigir automáticamente)
+  console.log('[auth] mode =', isExpoGo ? 'ExpoGo' : 'DevClient');
+  console.log('[auth] returnUrl =', returnUrl);
+  console.log('[auth] redirectTo(Supabase) =', redirectTo);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: true },
   });
   if (error) throw error;
-  if (!data?.url) throw new Error('Supabase no devolvió URL de OAuth (Google).');
+  if (!data?.url) throw new Error('Supabase no devolvió URL de OAuth');
 
-  // 2) Abre el navegador y espera volver a redirectTo
-  const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (res.type !== 'success' || !res.url) {
-    throw new Error('Login cancelado o no pudo finalizar.');
+  console.log('[auth] authUrl =', data.url);
+
+  const res = await WebBrowser.openAuthSessionAsync(
+    data.url,
+    returnUrl,
+    { preferEphemeralSession: true, showInRecents: true }
+  );
+  console.log('[auth] WebBrowser result =', res);
+
+  // @ts-ignore: Android a veces no tipa `url`
+  const cbUrl = (res && (res as any).url) || null;
+  if (res.type !== 'success' || !cbUrl) {
+    throw new Error('No se recibió el callback de OAuth (timeout).');
   }
 
-  // 3) Termina de establecer la sesión en Supabase
-  await finishFromCallback(res.url);
+  await finishFromCallback(cbUrl);
   return true;
 }
 
-/** FACEBOOK (cuando lo actives) */
-export async function signInWithFacebook() {
-  const redirectTo = getRedirectUri();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'facebook',
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error) throw error;
-  if (!data?.url) throw new Error('Supabase no devolvió URL de OAuth (Facebook).');
-
-  const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (res.type !== 'success' || !res.url) {
-    throw new Error('Login cancelado o no pudo finalizar.');
-  }
-
-  await finishFromCallback(res.url);
-  return true;
-}
-
-/** Email/Password */
+// Email/Password (como ya lo tienes)
 export async function signUpWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
   return data.user;
 }
-
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data.session;
 }
-
 export async function signOut() {
   await supabase.auth.signOut();
 }
