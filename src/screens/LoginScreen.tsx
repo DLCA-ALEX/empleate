@@ -6,7 +6,7 @@ import {
 import { colors, radius, spacing } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '@/store/useStore';
-import { signInWithEmail, signUpWithEmail } from '@/services/auth';
+import { signInWithEmail, signUpWithEmail,signInWithGoogle } from '@/services/auth';
 
 export default function LoginScreen() {
   const nav = useNavigation<any>();
@@ -61,10 +61,18 @@ export default function LoginScreen() {
   };
 
   // Botones sociales deshabilitados (placeholder)
-  const onGoogle = () => {
-    if (requirePolicy()) return;
-    Alert.alert('Próximamente', 'Inicio de sesión con Google se habilitará más tarde.');
-  };
+const onGoogle = async () => {
+  if (requirePolicy()) return;
+  try {
+    setLoading(true);
+    await signInWithGoogle();
+    afterAuth(); // te manda a Home
+  } catch (e: any) {
+    Alert.alert('Google', e?.message ?? 'No se pudo completar el inicio de sesión.');
+  } finally {
+    setLoading(false);
+  }
+};
   const onFacebook = () => {
     if (requirePolicy()) return;
     Alert.alert('Próximamente', 'Inicio de sesión con Facebook se habilitará más tarde.');
