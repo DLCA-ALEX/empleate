@@ -27,6 +27,7 @@
     },
     "web": { "favicon": "" },
     "extra": {
+            "GOOGLE_EXPO_CLIENT_ID": "1068332015165-4fu1t7q1mbqpva03mm7538unigkgse9k.apps.googleusercontent.com",
       "SUPABASE_URL": "https://vhhpppnmiarcakcwycxw.supabase.co",
       "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoaHBwcG5taWFyY2FrY3d5Y3h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMzczMDIsImV4cCI6MjA3MTcxMzMwMn0.yTaW2ST1uNLdSiopPJ6ryNSj7WVWXJxXSmhEcbNGG9g",
       "eas": {

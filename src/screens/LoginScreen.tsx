@@ -6,7 +6,8 @@ import {
 import { colors, radius, spacing } from '@/theme';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '@/store/useStore';
-import { signInWithEmail, signUpWithEmail,signInWithGoogle } from '@/services/auth';
+// import { signInWithEmail, signUpWithEmail,signInWithGoogle } from '@/services/auth';
+import { signInWithEmail, signInWithGoogleWP } from '@/services/auth';
 
 export default function LoginScreen() {
   const nav = useNavigation<any>();
@@ -28,31 +29,42 @@ export default function LoginScreen() {
 
   const afterAuth = () => nav.replace('Home');
 
-  const onLogin = async () => {
-    if (requirePolicy()) return;
-    try {
-      setLoading(true);
-      await signInWithEmail(email.trim(), password);
-      afterAuth();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo iniciar sesión');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onRegister = async () => {
-    if (requirePolicy()) return;
-    try {
-      setLoading(true);
-      await signUpWithEmail(email.trim(), password);
-      Alert.alert('Cuenta creada', 'Si la confirmación por correo está activa, revisa tu bandeja.');
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'No se pudo crear la cuenta');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const onLogin = async () => {
+  //   if (requirePolicy()) return;
+  //   try {
+  //     setLoading(true);
+  //     await signInWithEmail(email.trim(), password);
+  //     afterAuth();
+  //   } catch (e: any) {
+  //     Alert.alert('Error', e?.message ?? 'No se pudo iniciar sesión');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
+const onLogin = async () => {
+  if (requirePolicy()) return;
+  try {
+    setLoading(true);
+    const me = await signInWithEmail(email.trim(), password);
+    setUser(me);              // 👈 guarda el user en el store
+    nav.replace('Home');
+  } catch (e:any) {
+    Alert.alert('Error', e?.message ?? 'No se pudo iniciar sesión');
+  } finally { setLoading(false); }
+};
+  // const onRegister = async () => {
+  //   if (requirePolicy()) return;
+  //   try {
+  //     setLoading(true);
+  //     await signUpWithEmail(email.trim(), password);
+  //     Alert.alert('Cuenta creada', 'Si la confirmación por correo está activa, revisa tu bandeja.');
+  //   } catch (e: any) {
+  //     Alert.alert('Error', e?.message ?? 'No se pudo crear la cuenta');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const continueAsGuest = () => {
     if (requirePolicy()) return;
@@ -61,17 +73,29 @@ export default function LoginScreen() {
   };
 
   // Botones sociales deshabilitados (placeholder)
+// const onGoogle = async () => {
+//   if (requirePolicy()) return;
+//   try {
+//     setLoading(true);
+//     await signInWithGoogle();
+//     afterAuth(); // te manda a Home
+//   } catch (e: any) {
+//     Alert.alert('Google', e?.message ?? 'No se pudo completar el inicio de sesión.');
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
 const onGoogle = async () => {
   if (requirePolicy()) return;
   try {
     setLoading(true);
-    await signInWithGoogle();
-    afterAuth(); // te manda a Home
-  } catch (e: any) {
+    const me = await signInWithGoogleWP();
+    setUser(me);              // 👈 guarda el user en el store
+    nav.replace('Home');
+  } catch (e:any) {
     Alert.alert('Google', e?.message ?? 'No se pudo completar el inicio de sesión.');
-  } finally {
-    setLoading(false);
-  }
+  } finally { setLoading(false); }
 };
   const onFacebook = () => {
     if (requirePolicy()) return;
