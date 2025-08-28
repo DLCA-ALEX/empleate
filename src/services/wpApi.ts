@@ -46,17 +46,17 @@ export const WP_API_BIBLIOTECA = `${WP_SITE_ROOT}/wp-json/biblioteca/v1`;
 export const WP_API_JWT        = `${WP_SITE_ROOT}/wp-json/jwt-auth/v1`;
 export const WP_API_MYAPI      = `${WP_SITE_ROOT}/wp-json/my-api/v1`;
 
-// ✅ NUEVO/ARREGLADO: WP Core v2 SOBRE LA MISMA RAÍZ
+export type TopLibro = LibroWP & { like_count?: number };
 export const WP_API_V2         = `${WP_SITE_ROOT}/wp-json/wp/v2`;
 
-// Para recursos absolutos (imágenes/PDF) y construir URLs absolutas
+// Para recursos absolutos (imágenes/PDF)
 export const PUBLIC_ORIGIN = WP_SITE_ROOT;
 
 // -------------------- Helper HTTP (con logs) --------------------
 async function http<T>(url: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set('ngrok-skip-browser-warning', 'true');
-  // No forzamos JSON en GETs, pero no afecta si queda
+  // No es estrictamente necesario para GET, pero no rompe:
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
   const res = await fetch(url, { ...init, headers });
@@ -64,16 +64,48 @@ async function http<T>(url: string, init: RequestInit = {}): Promise<T> {
   console.log('[http] url=', url, 'status=', res.status, 'raw body=', text);
 
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
-
   return JSON.parse(text) as T;
+}
+
+// -------------------- Helpers de URLs --------------------
+// Normaliza assets que vienen como http://localhost/... a tu origen público (ngrok)
+export function normalizeAssetUrl(u?: string): string | undefined {
+  if (!u) return undefined;
+  try {
+    const url = new URL(u);
+    const isLocal =
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '::1';
+    if (isLocal) {
+      const base = new URL(PUBLIC_ORIGIN);
+      // Conserva el path completo de WP local sobre el host ngrok
+      return new URL(url.pathname + url.search + url.hash, base.origin).toString();
+    }
+    return u;
+  } catch {
+    try { return new URL(u, PUBLIC_ORIGIN).toString(); } catch { return u; }
+  }
+}
+
+export function abs(u?: string): string | undefined {
+  if (!u) return undefined;
+  try { new URL(u); return u; } catch {}
+  try { return new URL(u, PUBLIC_ORIGIN).toString(); } catch { return u; }
 }
 
 // -------------------- API Pública existente --------------------
 export const wpApi = {
   // Biblioteca pública (ya existente)
-  listLibros: () => http<LibroWP[]>(`${WP_API_BIBLIOTECA}/libros`),
-
-  // ---------- Auth (usuario/clave) ----------
+   async listLibros() {
+    const raw = await http<LibroWP[]>(`${WP_API_BIBLIOTECA}/libros`);
+    return raw.map(it => ({
+      ...it,
+      portada: normalizeAssetUrl(it.portada),
+      archivo_pdf: normalizeAssetUrl(it.archivo_pdf),
+    }));
+  },
+  // Auth (usuario/clave)
   async loginPassword(username: string, password: string) {
     type Resp = { token: string; user_display_name?: string; user_email?: string };
     return http<Resp>(`${WP_API_JWT}/token`, {
@@ -82,7 +114,7 @@ export const wpApi = {
     });
   },
 
-  // ---------- Auth (Google -> JWT WP) ----------
+  // Auth (Google -> JWT WP)
   async loginGoogle(id_token: string) {
     type Resp = { token: string; user_display_name?: string; user_email?: string };
     return http<Resp>(`${WP_API_MYAPI}/google-login`, {
@@ -91,20 +123,24 @@ export const wpApi = {
     });
   },
 
-  // ---------- Favoritos (requiere Bearer) ----------
+  // Favoritos (requiere Bearer)
   async getFavorites(token: string) {
     return http<LibroWP[]>(`${WP_API_MYAPI}/favorites`, {
       headers: { Authorization: `Bearer ${token}` },
     });
   },
-};
+  async listTopLibros() {
+  // GET: ${WP_API_MYAPI}/top-libros
+  const raw = await http<Array<LibroWP & { like_count?: number }>>(`${WP_API_MYAPI}/top-libros`);
 
-// -------------------- Helpers de URLs --------------------
-export function abs(u?: string): string | undefined {
-  if (!u) return undefined;
-  try { new URL(u); return u; } catch {}
-  try { return new URL(u, PUBLIC_ORIGIN).toString(); } catch { return u; }
-}
+  // normaliza urls de portada/pdf (localhost -> ngrok) y devuelve mismo shape + like_count
+  return raw.map(it => ({
+    ...it,
+    portada: normalizeAssetUrl(it.portada),
+    archivo_pdf: normalizeAssetUrl(it.archivo_pdf),
+  }));
+},
+};
 
 // -------------------- NUEVO: Listado por área (WP Core v2) --------------------
 /**
@@ -115,28 +151,26 @@ export function abs(u?: string): string | undefined {
  *   Emprendimiento          -> '4'
  *   Participación Juvenil   -> '5'
  *
- * Ejemplo de uso:
+ * Ej:
  *   const raw = await listByArea('2,3');
  *   const libros: LibroWP[] = raw.map(mapWpV2LibroToLibroWP);
  */
 export function listByArea(areaCsv: string) {
+  // NO usar encodeURIComponent aquí porque WP acepta CSV crudo (2,3)
   const url = `${WP_API_V2}/libros?area_contenido=${areaCsv}`;
   return http<any[]>(url);
 }
 
-// -------------------- NUEVO: Mapper WP v2 -> tu shape LibroWP --------------------
+// -------------------- Mapper WP v2 -> tu shape LibroWP --------------------
 export function mapWpV2LibroToLibroWP(node: any): LibroWP {
-  const pdf =
-    typeof node?.acf?.archivo_pdf === 'string' && node.acf.archivo_pdf
-      ? node.acf.archivo_pdf
-      : undefined;
+  const pdf = typeof node?.acf?.archivo_pdf === 'string' ? node.acf.archivo_pdf : undefined;
 
   return {
     id: node?.id,
     titulo: node?.title?.rendered ?? '',
     autor: node?.acf?.autor ?? undefined,
-    portada: node?.acf?.portada ?? undefined,
-    archivo_pdf: pdf,
+    portada: normalizeAssetUrl(node?.acf?.portada),
+    archivo_pdf: normalizeAssetUrl(pdf),
     enlace_externo: undefined,
   };
 }
