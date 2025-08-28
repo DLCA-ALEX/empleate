@@ -39,7 +39,7 @@ function mapSupabaseUser(u: any): UserSession | null {
       u.user_metadata?.name ||
       u.email?.split('@')[0] ||
       'Usuario',
-    email: u.email || undefined,
+    email: u.email || undefined||u.user_email,
     avatar: u.user_metadata?.avatar_url || undefined,
     provider: (u.app_metadata?.provider as UserSession['provider']) || 'password',
   };

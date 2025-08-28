@@ -12,7 +12,7 @@ export default function ProfileScreen() {
 
   const avatarUri =
     user?.avatar && user.avatar.startsWith('http') ? user.avatar : undefined;
-
+console.log(user)
   const logout = async () => {
     try {
       await signOut();

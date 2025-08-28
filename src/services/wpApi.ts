@@ -26,6 +26,7 @@
 // src/services/wpApi.ts
 // src/services/wpApi.ts
 // src/services/wpApi.ts
+// src/services/wpApi.ts
 export type LibroWP = {
   id: number | string;
   titulo: string;
@@ -35,14 +36,16 @@ export type LibroWP = {
   enlace_externo?: string;
 };
 
-// 👇 Tu raíz real del sitio (nota el /biblioteca-plan)
+// Raíz real del WP (nota el /biblioteca-plan)
 export const WP_SITE_ROOT =
   'https://ef0ea382b821.ngrok-free.app/biblioteca-plan';
 
-// 👇 Namespace de tu API custom (si la tienes)
-export const WP_API_BASE = `${WP_SITE_ROOT}/wp-json/biblioteca/v1`;
+// Namespaces
+export const WP_API_BIBLIOTECA = `${WP_SITE_ROOT}/wp-json/biblioteca/v1`;
+export const WP_API_JWT        = `${WP_SITE_ROOT}/wp-json/jwt-auth/v1`;
+export const WP_API_MYAPI      = `${WP_SITE_ROOT}/wp-json/my-api/v1`;
 
-// 👇 Úsalo para /users/me y recursos públicos (imágenes, etc.)
+// Para /users/me y recursos (imágenes/PDF) y para construir URLs absolutas
 export const PUBLIC_ORIGIN = WP_SITE_ROOT;
 
 // Helper con logs y header para ngrok
@@ -52,36 +55,50 @@ async function http<T>(url: string, init: RequestInit = {}): Promise<T> {
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
   const res = await fetch(url, { ...init, headers });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    console.warn('[wpApi] HTTP error', res.status, res.statusText, 'url=', url, 'body=', text);
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
-  }
-  return res.json() as Promise<T>;
+  const text = await res.text();
+  console.log("[http] url=", url, "status=", res.status, "raw body=", text);
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+
+  return JSON.parse(text) as T;
 }
 
-export const wpApi = {
-  // Biblioteca (custom)
-  listLibros: () => http<LibroWP[]>(`${WP_API_BASE}/libros`),
 
-  // Login con usuario/clave (JWT WP oficial)
+export const wpApi = {
+  // ---------- Biblioteca pública ----------
+  listLibros: () => http<LibroWP[]>(`${WP_API_BIBLIOTECA}/libros`),
+  // getLibro: (id: number|string) => http<LibroWP>(`${WP_API_BIBLIOTECA}/libros/${id}`),
+
+  // ---------- Auth (usuario/clave) ----------
   async loginPassword(username: string, password: string) {
     type Resp = { token: string; user_display_name?: string; user_email?: string };
-    const url = `${WP_SITE_ROOT}/wp-json/jwt-auth/v1/token`;
-    return http<Resp>(url, {
+    return http<Resp>(`${WP_API_JWT}/token`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
   },
 
-  // Login con Google → tu endpoint custom que intercambia id_token por JWT WP
+  // ---------- Auth (Google -> JWT WP) ----------
   async loginGoogle(id_token: string) {
     type Resp = { token: string; user_display_name?: string; user_email?: string };
-    // Ajusta si tu ruta es distinta:
-    const url = `${WP_API_BASE}/google-login`;
-    return http<Resp>(url, {
+    // Ajusta si tu endpoint custom se llama distinto:
+    return http<Resp>(`${WP_API_MYAPI}/google-login`, {
       method: 'POST',
       body: JSON.stringify({ id_token }),
     });
   },
+
+  // ---------- Favoritos (requiere Bearer) ----------
+  async getFavorites(token: string) {
+    return http<LibroWP[]>(`${WP_API_MYAPI}/favorites`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
 };
+
+// Helper opcional para asegurar URLs absolutas
+export function abs(u?: string): string | undefined {
+  if (!u) return undefined;
+  try { new URL(u); return u; } catch {}
+  try { return new URL(u, PUBLIC_ORIGIN).toString(); } catch { return u; }
+}
