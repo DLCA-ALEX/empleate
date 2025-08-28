@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { wpApi } from '@/services/wpApi';
 import { mapLibroToContent } from '@/utils/bookMapper';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const nav = useNavigation<any>();
@@ -41,17 +42,21 @@ export default function HomeScreen() {
 
       {/* barra superior azul */}
       <View style={{ backgroundColor: colors.primary, paddingHorizontal: spacing(1.5), paddingVertical: spacing(1.25), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>Biblioteca EmpleaT</Text>
+        <Text style={{ color: 'white', fontSize: 22, fontWeight: '700' }}>Biblioteca EmpleaT</Text>
         <View style={{ flexDirection: 'row' }}>
           <TouchableOpacity onPress={() => nav.navigate('Favorites')} style={{ marginRight: spacing(1.5) }}>
-            <Text style={{ color: 'white' }}>⭐ Favoritos</Text>
+            <Ionicons name="star-outline" size={25} color="white" />
           </TouchableOpacity>
+
           <TouchableOpacity onPress={() => nav.navigate('Profile')} style={{ marginRight: spacing(1.5) }}>
-            <Text style={{ color: 'white' }}>👤</Text>
+            <Ionicons name="person-circle-outline" size={28} color="white" />
           </TouchableOpacity>
-          {/* <TouchableOpacity onPress={() => nav.navigate('Biblioteca')}>
-            <Text style={{ color: 'white' }}>WP</Text>
-          </TouchableOpacity> */}
+
+          {/* 
+  <TouchableOpacity onPress={() => nav.navigate('Biblioteca')}>
+    <Ionicons name="library-outline" size={22} color="white" />
+  </TouchableOpacity> 
+  */}
         </View>
       </View>
 
@@ -189,32 +194,36 @@ function BottomNav({
   onPressFaq,
   onPressRecursos,
   active = 'inicio',
-}: {
-  onPressInicio: () => void;
-  onPressBiblioteca: () => void;
-  onPressHistorial: () => void;
-  onPressFaq: () => void;
-  onPressRecursos: () => void;
-  active?: 'inicio' | 'Favorites' | 'historial' | 'faq' | 'recursos';
 }) {
   const Item = ({
     label,
-    icon,
+    iconName,
     onPress,
     isActive,
   }: {
     label: string;
-    icon: string;
+    iconName: string; // nombre del icono Ionicons
     onPress: () => void;
     isActive: boolean;
   }) => (
     <TouchableOpacity
       onPress={onPress}
-      style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}
+      style={{ flex: 1, alignItems: 'center', paddingVertical: 6 }}
       activeOpacity={0.8}
     >
-      <Text style={{ fontSize: 18 }}>{icon}</Text>
-      <Text style={{ fontSize: 11, marginTop: 2, color: isActive ? colors.primary : '#6b7280', fontWeight: isActive ? '700' : '500' }}>
+      <Ionicons
+        name={iconName as any}
+        size={22}
+        color={isActive ? colors.primary : '#6b7280'}
+      />
+      <Text
+        style={{
+          fontSize: 11,
+          marginTop: 2,
+          color: isActive ? colors.primary : '#6b7280',
+          fontWeight: isActive ? '700' : '500',
+        }}
+      >
         {label}
       </Text>
     </TouchableOpacity>
@@ -232,13 +241,11 @@ function BottomNav({
         borderTopColor: '#e5e7eb',
       }}
     >
-      <Item label="Historial" icon="🕘" onPress={onPressHistorial} isActive={active === 'historial'} />
-      <Item label="Favorites" icon="📚" onPress={onPressBiblioteca} isActive={active === 'Favorites'} />
-
-      <Item label="Inicio" icon="🏠" onPress={onPressInicio} isActive={active === 'inicio'} />
-
-      <Item label="FAQ" icon="❓" onPress={onPressFaq} isActive={active === 'faq'} />
-      <Item label="Recursos" icon="🔗" onPress={onPressRecursos} isActive={active === 'recursos'} />
+      <Item label="Historial" iconName="time-outline" onPress={onPressHistorial} isActive={active === 'historial'} />
+      <Item label="Favoritos" iconName="bookmarks-outline" onPress={onPressBiblioteca} isActive={active === 'Favorites'} />
+      <Item label="Inicio" iconName="home-outline" onPress={onPressInicio} isActive={active === 'inicio'} />
+      <Item label="FAQ" iconName="help-circle-outline" onPress={onPressFaq} isActive={active === 'faq'} />
+      <Item label="Recursos" iconName="link-outline" onPress={onPressRecursos} isActive={active === 'recursos'} />
     </View>
   );
 }
