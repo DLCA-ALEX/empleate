@@ -13,14 +13,17 @@ type Item = { id: string; pct: number };
 export default function HistoryScreen() {
   const nav = useNavigation<any>();
   const [items, setItems] = useState<Item[]>([]);
+  console.log("Son los items",items)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
         const keys = await AsyncStorage.getAllKeys();
+        console.log("son las keys", keys)
         const progKeys = keys.filter(k => k.startsWith('reading.progress:'));
         const kvs = await AsyncStorage.multiGet(progKeys);
+        console.log("es el kevs",kvs)
         const rows = kvs.map(([k, v]) => ({
           id: k.replace('reading.progress:', ''),
           pct: Math.max(0, Math.min(100, Number(v || 0))),
@@ -29,7 +32,7 @@ export default function HistoryScreen() {
         .filter(r => r.pct > 0)
         // ordena descendente por avance
         .sort((a, b) => b.pct - a.pct);
-
+        console.log("Son lso rows",rows)
         setItems(rows);
       } finally {
         setLoading(false);
