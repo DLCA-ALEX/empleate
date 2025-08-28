@@ -1,3 +1,4 @@
+// src/screens/HomeScreen.tsx
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import BrandHeader from '@/components/BrandHeader';
@@ -19,13 +20,12 @@ export default function HomeScreen() {
     { label: 'Desarrollo\nPersonal', icon: require('../../assets/home/cat-desarrollo.png'), bg: '#E8F0FF' },
   ];
 
-  // Trae libros desde WP
+  // WP
   const { data: libros = [], isLoading } = useQuery({
     queryKey: ['wp-libros-home'],
     queryFn: wpApi.listLibros,
   });
 
-  // Divide en secciones “fake” por ahora (puedes cambiarlas por filtros reales)
   const recientes = useMemo(() => libros.slice(0, 10), [libros]);
   const recomendados = useMemo(() => libros.slice(10, 20), [libros]);
   const continuar = useMemo(() => libros.slice(20, 30), [libros]);
@@ -39,7 +39,7 @@ export default function HomeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <BrandHeader />
 
-      {/* barra superior azul con logo/botones */}
+      {/* barra superior azul */}
       <View style={{ backgroundColor: colors.primary, paddingHorizontal: spacing(1.5), paddingVertical: spacing(1.25), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ color: 'white', fontSize: 18, fontWeight: '700' }}>Biblioteca EmpleaT</Text>
         <View style={{ flexDirection: 'row' }}>
@@ -49,13 +49,13 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => nav.navigate('Profile')} style={{ marginRight: spacing(1.5) }}>
             <Text style={{ color: 'white' }}>👤</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => nav.navigate('Biblioteca')}>
+          {/* <TouchableOpacity onPress={() => nav.navigate('Biblioteca')}>
             <Text style={{ color: 'white' }}>WP</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing(4) }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing(10) /* espacio para que no tape el footer */ }}>
         {/* categorías */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: spacing(1.5) }}>
           {cats.map(c => (
@@ -63,9 +63,25 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
-        {/* continuar leyendo (de momento: subset de WP) */}
+        {/* continuar leyendo */}
         <Section title="Continuar leyendo">
-    <FlatList
+          {/* <FlatList
+            data={continuar}
+            keyExtractor={(it: any) => String(it.id)}
+            renderItem={({ item }) => (
+              <BookCardWide
+                title={item.titulo}
+                author={item.autor}
+                thumbnail={item.portada}
+                onPress={() => goDetail(item)}
+              />
+            )}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: spacing(1.5) }}
+            ListEmptyComponent={!isLoading ? <Text style={{ paddingHorizontal: spacing(1.5) }}>Sin datos</Text> : null}
+          /> */}
+          <FlatList
             data={recientes}
             keyExtractor={(it: any) => String(it.id)}
             renderItem={({ item }) => (
@@ -105,6 +121,22 @@ export default function HomeScreen() {
 
         {/* recomendados */}
         <Section title="Recomendados">
+          {/* <FlatList
+            data={recomendados}
+            keyExtractor={(it: any) => String(it.id)}
+            renderItem={({ item }) => (
+              <BookCardWide
+                title={item.titulo}
+                author={item.autor}
+                thumbnail={item.portada}
+                onPress={() => goDetail(item)}
+              />
+            )}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: spacing(1.5) }}
+            ListEmptyComponent={!isLoading ? <Text style={{ paddingHorizontal: spacing(1.5) }}>Sin datos</Text> : null}
+          /> */}
           <FlatList
             data={recientes}
             keyExtractor={(it: any) => String(it.id)}
@@ -123,6 +155,16 @@ export default function HomeScreen() {
           />
         </Section>
       </ScrollView>
+
+      {/* FOOTER tipo tab, solo en Home */}
+      <BottomNav
+        onPressInicio={() => { }}
+        onPressBiblioteca={() => nav.navigate('Favorites')}
+        onPressHistorial={() => nav.navigate('History')}
+        onPressFaq={() => nav.navigate('FAQ')}
+        onPressRecursos={() => nav.navigate('Resources')}
+        active="inicio"
+      />
     </View>
   );
 }
@@ -135,6 +177,68 @@ function Section({ title, children, action }: { title: string; children: React.R
         {action && <TouchableOpacity onPress={action}><Text style={{ color: colors.primary }}>Ver todos</Text></TouchableOpacity>}
       </View>
       {children}
+    </View>
+  );
+}
+
+/* ---------- Footer simple tipo tabs ---------- */
+function BottomNav({
+  onPressInicio,
+  onPressBiblioteca,
+  onPressHistorial,
+  onPressFaq,
+  onPressRecursos,
+  active = 'inicio',
+}: {
+  onPressInicio: () => void;
+  onPressBiblioteca: () => void;
+  onPressHistorial: () => void;
+  onPressFaq: () => void;
+  onPressRecursos: () => void;
+  active?: 'inicio' | 'Favorites' | 'historial' | 'faq' | 'recursos';
+}) {
+  const Item = ({
+    label,
+    icon,
+    onPress,
+    isActive,
+  }: {
+    label: string;
+    icon: string;
+    onPress: () => void;
+    isActive: boolean;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}
+      activeOpacity={0.8}
+    >
+      <Text style={{ fontSize: 18 }}>{icon}</Text>
+      <Text style={{ fontSize: 11, marginTop: 2, color: isActive ? colors.primary : '#6b7280', fontWeight: isActive ? '700' : '500' }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        left: 0, right: 0, bottom: 0,
+        height: 60,
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#e5e7eb',
+      }}
+    >
+      <Item label="Historial" icon="🕘" onPress={onPressHistorial} isActive={active === 'historial'} />
+      <Item label="Favorites" icon="📚" onPress={onPressBiblioteca} isActive={active === 'Favorites'} />
+
+      <Item label="Inicio" icon="🏠" onPress={onPressInicio} isActive={active === 'inicio'} />
+
+      <Item label="FAQ" icon="❓" onPress={onPressFaq} isActive={active === 'faq'} />
+      <Item label="Recursos" icon="🔗" onPress={onPressRecursos} isActive={active === 'recursos'} />
     </View>
   );
 }

@@ -21,7 +21,7 @@ export default function OnboardingScreen() {
 
   return (
     <ImageBackground source={s.img} style={{ flex: 1, justifyContent: 'flex-end' }}>
-      <View style={{ backgroundColor: colors.primary, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing(2) }}>
+      <View style={{ backgroundColor: colors.primary, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: spacing(10) }}>
         <Text style={{ color: 'white', fontWeight: '700', fontSize: 18, textAlign: 'center', marginBottom: spacing(1) }}>
           {s.title}
         </Text>

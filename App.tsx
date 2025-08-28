@@ -17,6 +17,9 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import CategoryScreen from './src/screens/CategoryScreen';
 import BibliotecaScreen from './src/screens/BibliotecaScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
+import FaqScreen from './src/screens/FaqScreen';
+import ResourcesScreen from './src/screens/ResourcesScreen';
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
@@ -28,7 +31,7 @@ export type RootStackParamList = {
   Upload: undefined;
   Profile: undefined;
   Category: undefined;
-    Register: undefined;           // 👈 agrega esto
+  Register: undefined;           // 👈 agrega esto
 
 };
 
@@ -57,6 +60,9 @@ export default function App() {
             <Stack.Screen name="Category" component={CategoryScreen} options={{ title: 'Categoría' }} />
             <Stack.Screen name="Biblioteca" component={BibliotecaScreen} options={{ title: 'Biblioteca (WP)' }} />
             <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Registro' }} />
+            <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'Historial' }} />
+            <Stack.Screen name="FAQ" component={FaqScreen} options={{ title: 'FAQ' }} />
+            <Stack.Screen name="Resources" component={ResourcesScreen} options={{ title: 'Recursos' }} />
 
 
           </Stack.Navigator>

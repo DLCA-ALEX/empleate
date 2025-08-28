@@ -10,6 +10,9 @@ import {
   Linking,
   Pressable,
   LayoutChangeEvent,
+  Animated,
+  PanResponder,
+  findNodeHandle,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
@@ -21,16 +24,16 @@ import { saveProgress, loadProgress } from '@/services/reading';
    Slider JS (sin nativo)
    ========================= */
 type PSliderProps = {
-  value: number; // 0..100
+  value: number;              // 0..100
   onSlidingComplete?: (v: number) => void;
-  onChange?: (v: number) => void;
+  onChange?: (v: number) => void; // opcional (en vivo)
   height?: number;
   trackColor?: string;
   filledColor?: string;
   thumbColor?: string;
 };
 
-function ProgressSlider({
+export function ProgressSlider({
   value,
   onSlidingComplete,
   onChange,
@@ -39,65 +42,99 @@ function ProgressSlider({
   filledColor = '#ffffff',
   thumbColor = '#ffffff',
 }: PSliderProps) {
-  const [internal, setInternal] = useState(value);
-  const widthRef = useRef(1);
+  const trackRef = useRef<View>(null);
+  const [trackW, setTrackW] = useState(1);
+  const [dragging, setDragging] = useState(false);
+  const thumbX = useRef(new Animated.Value(0)).current;
 
+  const clamp = (n: number, a = 0, b = 100) => Math.max(a, Math.min(b, n));
+  const pxFromPct = (p: number) => (clamp(p) / 100) * trackW;
+  const pctFromPx = (x: number) => clamp((x / trackW) * 100);
+
+  // sincroniza con cambios externos (scroll del WebView), pero no mientras arrastras
   useEffect(() => {
-    // si cambia value externo (p.ej. por WebView), sincroniza
-    setInternal(value);
-  }, [value]);
-
-  const pct = Math.max(0, Math.min(100, internal));
+    if (dragging) return;
+    Animated.timing(thumbX, {
+      toValue: pxFromPct(value),
+      duration: 120,
+      useNativeDriver: false,
+    }).start();
+  }, [value, trackW, dragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onLayout = (e: LayoutChangeEvent) => {
-    widthRef.current = Math.max(1, e.nativeEvent.layout.width);
+    const w = Math.max(1, e.nativeEvent.layout.width);
+    setTrackW(w);
+    // alinear el thumb con el value actual
+    thumbX.setValue(pxFromPct(value));
   };
 
-  const setFromX = (x: number, final = false) => {
-    const w = widthRef.current;
-    const p = Math.max(0, Math.min(100, (x / w) * 100));
-    setInternal(p);
-    onChange?.(p);
-    if (final) onSlidingComplete?.(Math.round(p));
-  };
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+
+      onPanResponderGrant: (e) => {
+        setDragging(true);
+        const x = Math.max(0, Math.min(trackW, e.nativeEvent.locationX)); // relativo al track
+        thumbX.setValue(x);
+        onChange?.(pctFromPx(x));
+      },
+
+      onPanResponderMove: (e) => {
+        // ¡CLAVE! usar siempre locationX (relativo al track), NO moveX/pageX
+        const x = Math.max(0, Math.min(trackW, e.nativeEvent.locationX));
+        thumbX.setValue(x);
+        onChange?.(pctFromPx(x));
+      },
+
+      onPanResponderRelease: (e) => {
+        const x = Math.max(0, Math.min(trackW, e.nativeEvent.locationX));
+        const pct = pctFromPx(x);
+        thumbX.setValue(pxFromPct(pct)); // por si quedó fuera por inercia
+        setDragging(false);
+        onSlidingComplete?.(Math.round(pct));
+      },
+
+      onPanResponderTerminate: () => {
+        // si el gesto se cancela (por ejemplo, navegación), simplemente soltamos
+        setDragging(false);
+      },
+
+      onPanResponderTerminationRequest: () => false,
+    })
+  ).current;
+
+  const filledStyle = useMemo(
+    () => [{ width: thumbX, height: 6, borderRadius: 999, backgroundColor: filledColor }],
+    [filledColor, thumbX]
+  );
 
   return (
-    <Pressable
-      onLayout={onLayout}
-      onPress={(e) => setFromX(e.nativeEvent.locationX, true)}
-      onPressIn={(e) => setFromX(e.nativeEvent.locationX)}
-      onPressOut={(e) => setFromX(e.nativeEvent.locationX, true)}
-      onLongPress={(e) => setFromX(e.nativeEvent.locationX)}
-      delayLongPress={0}
-      style={{ height, justifyContent: 'center' }}
-    >
-      {/* track */}
-      <View style={{ height: 6, borderRadius: 999, backgroundColor: trackColor }} />
-      {/* filled */}
+    <View style={{ height, justifyContent: 'center' }}>
+      {/* Track (ampliamos hitSlop para que sea fácil agarrar) */}
       <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: `${100 - pct}%`,
-          height: 6,
-          borderRadius: 999,
-          backgroundColor: filledColor,
-        }}
+        ref={trackRef}
+        onLayout={onLayout}
+        style={{ height: 6, borderRadius: 999, backgroundColor: trackColor }}
+        hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+        {...pan.panHandlers}
       />
-      {/* thumb */}
-      <View
+      {/* Filled */}
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0 }, filledStyle]} />
+      {/* Thumb */}
+      <Animated.View
         pointerEvents="none"
         style={{
           position: 'absolute',
-          left: `calc(${pct}% - 8px)`,
+          top: (height - 16) / 2,
           width: 16,
           height: 16,
           borderRadius: 999,
           backgroundColor: thumbColor,
+          transform: [{ translateX: Animated.subtract(thumbX, 8) }],
         }}
       />
-    </Pressable>
+    </View>
   );
 }
 
