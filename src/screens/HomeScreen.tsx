@@ -50,7 +50,11 @@ export default function HomeScreen() {
     queryKey: ['wp-libros-home'],
     queryFn: wpApi.listLibros,
   });
-
+  console.log("son los libros del general",libros)
+ const { data: topLibros = [], isLoading: isLoadingTop } = useQuery({
+    queryKey: ['wp-top-libros'],
+    queryFn: wpApi.listTopLibros,
+  });
   const recientes = useMemo(() => libros.slice(0, 10), [libros]);
   const recomendados = useMemo(() => libros.slice(10, 20), [libros]);
   const continuar = useMemo(() => libros.slice(20, 30), [libros]);
@@ -134,7 +138,7 @@ export default function HomeScreen() {
         </Section>
 
         {/* agregados recientemente */}
-        <Section title="Agregados Recientemente" action={() => nav.navigate('Search')}>
+        <Section title="Agregados Recientemente" action={() => nav.navigate('Biblioteca')}>
           <FlatList
             data={recientes}
             keyExtractor={(it: any) => String(it.id)}
@@ -155,37 +159,24 @@ export default function HomeScreen() {
 
         {/* recomendados */}
         <Section title="Recomendados">
-          {/* <FlatList
-            data={recomendados}
-            keyExtractor={(it: any) => String(it.id)}
-            renderItem={({ item }) => (
-              <BookCardWide
-                title={item.titulo}
-                author={item.autor}
-                thumbnail={item.portada}
-                onPress={() => goDetail(item)}
-              />
-            )}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: spacing(1.5) }}
-            ListEmptyComponent={!isLoading ? <Text style={{ paddingHorizontal: spacing(1.5) }}>Sin datos</Text> : null}
-          /> */}
           <FlatList
-            data={recientes}
+            data={topLibros}
             keyExtractor={(it: any) => String(it.id)}
             renderItem={({ item }) => (
               <BookCardWide
                 title={item.titulo}
                 author={item.autor}
-                thumbnail={item.portada}
+                thumbnail={item.portada}     // <- ya normalizada si venía en localhost
                 onPress={() => goDetail(item)}
+                // opcional: puedes pasar like_count si tu card lo soporta
               />
             )}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: spacing(1.5) }}
-            ListEmptyComponent={!isLoading ? <Text style={{ paddingHorizontal: spacing(1.5) }}>Sin datos</Text> : null}
+            ListEmptyComponent={
+              !isLoadingTop ? <Text style={{ paddingHorizontal: spacing(1.5) }}>Sin datos</Text> : null
+            }
           />
         </Section>
       </ScrollView>
