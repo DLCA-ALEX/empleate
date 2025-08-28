@@ -15,10 +15,34 @@ export default function HomeScreen() {
   const nav = useNavigation<any>();
 
   const cats = [
-    { label: 'Empleo y\nEmpleabilidad', icon: require('../../assets/home/cat-empleo.png'), bg: '#DFF5F0' },
-    { label: 'Emprendimiento', icon: require('../../assets/home/cat-emprendimiento.png'), bg: '#FFE8D5' },
-    { label: 'Participación\nJuvenil', icon: require('../../assets/home/cat-participacion.png'), bg: '#F1E4FF' },
-    { label: 'Desarrollo\nPersonal', icon: require('../../assets/home/cat-desarrollo.png'), bg: '#E8F0FF' },
+    {
+      label: 'Empleo y\nEmpleabilidad',
+      title: 'Empleo y Empleabilidad',
+      area: '2,3', // 👈 dos tax términos
+      icon: require('../../assets/home/cat-empleo.png'),
+      bg: '#DFF5F0',
+    },
+    {
+      label: 'Emprendimiento',
+      title: 'Emprendimiento',
+      area: '4',
+      icon: require('../../assets/home/cat-emprendimiento.png'),
+      bg: '#FFE8D5',
+    },
+    {
+      label: 'Participación\nJuvenil',
+      title: 'Participación Juvenil',
+      area: '5',
+      icon: require('../../assets/home/cat-participacion.png'),
+      bg: '#F1E4FF',
+    },
+    {
+      label: 'Desarrollo\nPersonal',
+      title: 'Desarrollo Personal',
+      area: '6',
+      icon: require('../../assets/home/cat-desarrollo.png'),
+      bg: '#E8F0FF',
+    },
   ];
 
   // WP
@@ -64,10 +88,15 @@ export default function HomeScreen() {
         {/* categorías */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: spacing(1.5) }}>
           {cats.map(c => (
-            <CategoryChip key={c.label} label={c.label} icon={c.icon} bg={c.bg} onPress={() => nav.navigate('Search')} />
+            <CategoryChip
+              key={c.label}
+              label={c.label}
+              icon={c.icon}
+              bg={c.bg}
+              onPress={() => nav.navigate('Category', { area: c.area, title: c.title })} // 👈
+            />
           ))}
         </ScrollView>
-
         {/* continuar leyendo */}
         <Section title="Continuar leyendo">
           {/* <FlatList
